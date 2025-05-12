@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Gioco delle Monete</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <h1>Gioco delle Monete</h1>
+  <div id="contenuto"></div>
+
+  <script>
+    const oggetti = {
+      mela: { nome: "Mela", prezzo: 100, emoji: "🍎" },
+      spugna: { nome: "Spugna", prezzo: 150, emoji: "🧽" },
+      palla: { nome: "Palla", prezzo: 200, emoji: "🏐" }
+    };
+
+    function inizializzaGiocatore(nome) {
+      const id = "giocatore_" + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem("giocatore_id", id);
+      localStorage.setItem("nome", nome);
+      localStorage.setItem("monete", "1000");
+      localStorage.setItem("inventario", JSON.stringify({}));
+      localStorage.setItem("cronologia", JSON.stringify([]));
+    }
+
+    function acquista(chiave) {
+      const oggetto = oggetti[chiave];
+      let monete = parseInt(localStorage.getItem("monete"));
+      if (monete >= oggetto.prezzo) {
+        monete -= oggetto.prezzo;
+        localStorage.setItem("monete", monete);
+
+        const inventario = JSON.parse(localStorage.getItem("inventario"));
+        inventario[chiave] = (inventario[chiave] || 0) + 1;
+        localStorage.setItem("inventario", JSON.stringify(inventario));
+
+        const cronologia = JSON.parse(localStorage.getItem("cronologia"));
+        cronologia.push({
+          oggetto: oggetto.nome,
+          emoji: oggetto.emoji,
+          prezzo: oggetto.prezzo,
+          data: new Date().toLocaleString()
+        });
+        localStorage.setItem("cronologia", JSON.stringify(cronologia));
+
+        mostraGioco(`Hai acquistato una ${oggetto.nome} ${oggetto.emoji}!`);
+      } else {
+        mostraGioco(`Non hai abbastanza monete per acquistare ${oggetto.nome}.`);
+      }
+    }
+
+    function mostraGioco(messaggio = "") {
+      const nome = localStorage.getItem("nome");
+      const monete = localStorage.getItem("monete");
+      const inventario = JSON.parse(localStorage.getItem("inventario"));
+      const cronologia = JSON.parse(localStorage.getItem("cronologia"));
+
+      let html = `<p>Ciao <strong>${nome}</strong>! Hai <strong>${monete}</strong> monete.</p>`;
+      if (messaggio) html += `<p><em>${messaggio}</em></p>`;
+
+      html += `<h2>Negozio</h2><ul>`;
+      for (const chiave in oggetti) {
+        const o = oggetti[chiave];
+        html += `<li>${o.emoji} <strong>${o.nome}</strong> - ${o.prezzo} monete 
+                 <button onclick="acquista('${chiave}')">Acquista</button></li>`;
+      }
+      html += `</ul>`;
+
+      html += `<h2>Inventario</h2><ul>`;
+      if (Object.keys(inventario).length === 0) {
+        html += `<li>Nessun oggetto acquistato.</li>`;
+      } else {
+        for (const chiave in inventario) {
+          html += `<li>${oggetti[chiave].emoji} ${oggetti[chiave].nome} x${inventario[chiave]}</li>`;
+        }
+      }
+      html += `</ul>`;
+
+      html += `<h2>Cronologia Acquisti</h2><ul>`;
+      if (cronologia.length === 0) {
+        html += `<li>Nessun acquisto effettuato.</li>`;
+      } else {
+        for (let i = cronologia.length - 1; i >= 0; i--) {
+          const c = cronologia[i];
+          html += `<li>${c.emoji} ${c.oggetto} - ${c.prezzo} monete il ${c.data}</li>`;
+        }
+      }
+      html += `</ul>`;
+
+      document.getElementById("contenuto").innerHTML = html;
+    }
+
+    function mostraFormNome() {
+      document.getElementById("contenuto").innerHTML = `
+        <form onsubmit="inizializzaGiocatore(document.getElementById('nome').value); mostraGioco(); return false;">
+          <label>Inserisci il tuo nome: <input type="text" id="nome" required></label>
+          <button type="submit">Inizia</button>
+        </form>
+      `;
+    }
+
+    if (!localStorage.getItem("nome")) {
+      mostraFormNome();
+    } else {
+      mostraGioco();
+    }
+  </script>
+</body>
+</html>
